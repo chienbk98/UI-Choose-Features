@@ -34,7 +34,7 @@ def remove_list(name_list):
       name_list.pop()
 
 
-def detectObject(frame, points:list, flag_Warning):
+def detectObject(frame, points:list, flag_Warning, numWarning):
   """
   points : list points of Polygon
   flag_Warning: flag to choose warning type:
@@ -58,31 +58,25 @@ def detectObject(frame, points:list, flag_Warning):
     cv2.circle(frame, center=(x_center, y_center), radius=0, color=(0, 255, 0), thickness= 7)
     if len(point1) > 2:
       dist = cv2.pointPolygonTest(np.array([point1]), (x_center, y_center), False)
-      if dist > 0:
-        print('<<<<<<< Warning >>>>>>>', datetime.datetime.now())
+      if dist > 0 and numWarning == 0:
+        if flag_Warning == 0:
+          sendemail(message)
+          pass
+        elif flag_Warning == 1:
+          sendSMS()
+          pass
+        elif flag_Warning == 2:
+          makeCall()
+          pass
+        elif flag_Warning == 3:
+          soundWarning()
+          pass
+        else:
+          print('<<<<<<< Warning >>>>>>>', datetime.datetime.now())
+        numWarning = numWarning + 1
     cv2.rectangle(frame, (va[0], va[1]), (va[0] + va[2], va[1]+va[3]), (255, 0, 0), 2, 1)
   remove_list(bkg_list)
 
-  return frame
+  return frame, numWarning
 
 
-
-
-
-
-
-
-#   dist = cv2.pointPolygonTest(np.array([points]),(col,row),False)  
-# với tham số:
-# Đầu tiên là các tọa độ điểm kiểu mảng: np.array([points])
-# (col, row) là tọa độ điểm cần xét (tâm đối tượng)
-# False: là nếu điểm đang xét nằm trong đa giác thì dist = 1, nằm ngoài dist = -1, trên cạnh  dist = 0
-# Như vậy ta có hàm checkColor() vẫn được viết trong class Draw như sau:
-# def checkColor(self,listRects,points):        
-#         for rect in listRects:
-#             c,r,w,h = rect            
-#             col,row = int((2*c+w)/2),int((2*r+h)/2)
-#             dist = cv2.pointPolygonTest(np.array([points]),(col,row),False)
-#             if dist > 0 : 
-#                 return True
-#         return False
