@@ -13,6 +13,9 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QUrl, QTimer
 
+from protectedArea import *
+
+
 from datetime import datetime
 from threading import Thread
 from os import path
@@ -52,7 +55,7 @@ MONTH = { 1:'January',
           11:'November',
           12:'December'}
 
-IP_CAM_ADDRESS = {'CAM1': 0, 'CAM2':0, 'CAM3': 0}
+IP_CAM_ADDRESS = {'CAM1': 'Video1.avi', 'CAM2':0, 'CAM3': 0}
 class Ui_MainWindow(QWidget):
     def __init__(self, feature = feature):
         super().__init__()
@@ -499,13 +502,10 @@ class Ui_MainWindow(QWidget):
     def viewCam(self):
         # while True:
         ret, image = self.cap.read()
-        #     if not ret:
-        #         break
         self.outVivdeo.write(image)
+        # image = detectObject(image, self.points_CAM1)
         self.CAM1_draw.setPixmap(QPixmap.fromImage(self.image_to_QImage(self.drawArea(image, self.points_CAM1, self.CAM1_draw), self.CAM1_draw)))
         self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1)))        
-        # else:
-        #     self.stopCAM1()
 
     def start_view(self):
             self.stopCAM1.setEnabled(True)
@@ -648,10 +648,15 @@ class Ui_MainWindow(QWidget):
     # Create Mouse Event for draw protected area
     def mouseEventCAM1(self, event):
         if self.removeCAM1.isEnabled() and (not self.startCAM1.isEnabled()) and self.flag_CAM1 == True:
+            # print(self.CAM1_draw.width(), self.CAM1_draw.height())
             x = event.pos().x()
             y = event.pos().y()
+            print(x, y)
+            x = round((x/self.CAM1_draw.width()), 10)
+            y = round((y/self.CAM1_draw.height()), 10)
             self.points_CAM1.append([x, y])
-            print("Position clicked is ({}, {})".format(x, y))
+            print("Position clicked is ({}, {})".format(int(x*self.CAM1_draw.width()), int(y*self.CAM1_draw.height())))
+            # print(self.points_CAM1)
 
     def mouseEventCAM2(self, event):
         if self.removeCAM2.isEnabled() and (not self.startCAM2.isEnabled()) and self.flag_CAM2 == True:
@@ -699,12 +704,20 @@ class Ui_MainWindow(QWidget):
 
     def drawArea(self, image, points: list, qlabel: QtWidgets.QLabel):
         image_draw = image.copy()
+        (width, height) = image.shape[:2]
         image_draw = cv2.resize(image_draw, (qlabel.width(), qlabel.height()))
+
+
         if len(points) > 1:
-            cv2.polylines(image_draw, np.array([points]), 1, (255, 0, 0), 1)
+            point1 = []
+            for point in points:
+                x = int(point[0] * qlabel.width())
+                y = int(point[1] * qlabel.height())
+                point1.append((x, y))
+            cv2.polylines(image_draw, np.array([point1]), 1, (255, 0, 0), 1)
             b, g, r = cv2.split(image_draw)
-            cv2.fillPoly(b, np.array([points]), (0, 255, 0))
-            cv2.fillPoly(r, np.array([points]), (0, 255, 0))
+            cv2.fillPoly(b, np.array([point1]), (0, 255, 0))
+            cv2.fillPoly(r, np.array([point1]), (0, 255, 0))
             image_draw = cv2.merge([b, g, r])
         return image_draw
 
