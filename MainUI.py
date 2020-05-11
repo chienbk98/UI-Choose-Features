@@ -63,6 +63,7 @@ class Ui_MainWindow(QWidget):
         self.points_CAM1 = []
         self.points_CAM2 = []
         self.points_CAM3 = []
+        self.numWarning = 0
     def setupUi(self, Form):
         Form.setObjectName("Form")
         Form.resize(1048, 375)
@@ -314,6 +315,10 @@ class Ui_MainWindow(QWidget):
 
 
 # Setup Connect
+    # Setup enable
+        self.removeCAM1.setEnabled(False)
+        self.removeCAM2.setEnabled(False)
+        self.removeCAM3.setEnabled(False)
     # Setup choosing feature
         self.carProtectionCAM1.setVisible(self.feature['car1'])
         self.carProtectionCAM2.setVisible(self.feature['car2'])
@@ -324,6 +329,8 @@ class Ui_MainWindow(QWidget):
         self.illegalCAM3.setVisible(self.feature['illegal3'])
 
         self.monitorAreaCAM1.setVisible(self.feature['mpa1'])
+        self.monitorAreaCAM1.toggle()
+        self.monitorAreaCAM1.setCheckable(True)
         self.monitorAreaCAM2.setVisible(self.feature['mpa2'])
         self.monitorAreaCAM3.setVisible(self.feature['mpa3'])
 
@@ -503,9 +510,11 @@ class Ui_MainWindow(QWidget):
         # while True:
         ret, image = self.cap.read()
         self.outVivdeo.write(image)
-        # image = detectObject(image, self.points_CAM1)
+        self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1))) 
+        if self.feature['mpa1'] and self.monitorAreaCAM1.isChecked():
+          image, self.numWarning = detectObject(image, self.points_CAM1, flag_Warning=1, numWarning=self.numWarning)
         self.CAM1_draw.setPixmap(QPixmap.fromImage(self.image_to_QImage(self.drawArea(image, self.points_CAM1, self.CAM1_draw), self.CAM1_draw)))
-        self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1)))        
+       
 
     def start_view(self):
             self.stopCAM1.setEnabled(True)
@@ -519,7 +528,6 @@ class Ui_MainWindow(QWidget):
                 fourcc = cv2.VideoWriter_fourcc(*'XVID')
                 self.outVivdeo = cv2.VideoWriter(self.savePath1+'output.avi', fourcc, 30, (int(self.cap.get(3)), int(self.cap.get(4))))
                 self.timer.start(0)
-                # Thread(target=self.viewCam, args=()).start()
             else:
                 self.startCAM1.setEnabled(True)
                 self.stopCAM1.setEnabled(False)
@@ -720,6 +728,9 @@ class Ui_MainWindow(QWidget):
             cv2.fillPoly(r, np.array([point1]), (0, 255, 0))
             image_draw = cv2.merge([b, g, r])
         return image_draw
+ # Function for IVA tasks
+    def monitorProhibitedArea(self, frame, points:list, flag_Warning:int):
+      pass
 
 if __name__ == "__main__":
     import sys
