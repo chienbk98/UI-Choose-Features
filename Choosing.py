@@ -8,7 +8,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from TestMainUI import Ui_MainWindow
+from MainUI import Ui_MainWindow
 class Ui_Form(object):
     def openNewWindow(self):
         feature= {
