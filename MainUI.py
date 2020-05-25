@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QUrl, QTimer
 
 from protectedArea import *
-
+from Stream_video import * 
 
 from datetime import datetime
 from threading import Thread
@@ -55,7 +55,7 @@ MONTH = { 1:'January',
           11:'November',
           12:'December'}
 
-IP_CAM_ADDRESS = {'CAM1': 'Video1.avi', 'CAM2':0, 'CAM3': 0}
+IP_CAM_ADDRESS = {'CAM1': 'Video1.avi', 'CAM2':'/home/yoona/Downloads/chien.mp4', 'CAM3': 0}
 class Ui_MainWindow(QWidget):
     def __init__(self, feature = feature):
         super().__init__()
@@ -359,9 +359,9 @@ class Ui_MainWindow(QWidget):
         self.timer2 = QTimer()
         self.timer3 = QTimer()
         # set timer timeout callback function
-        self.timer.timeout.connect(self.viewCam)
-        self.startCAM1.clicked.connect(self.start_view)
-        self.stopCAM1.clicked.connect(self.stop_view)
+        self.timer.timeout.connect(self.viewCam1)
+        self.startCAM1.clicked.connect(self.start_view1)
+        self.stopCAM1.clicked.connect(self.stop_view1)
 
         self.timer2.timeout.connect(self.viewCam2)
         self.startCAM2.clicked.connect(self.start_view2)
@@ -505,87 +505,159 @@ class Ui_MainWindow(QWidget):
         step = channel * width
         return QImage(image.data, width, height, step, QImage.Format_RGB888)
 
-        
-    def viewCam(self):
-        # while True:
-        ret, image = self.cap.read()
-        self.outVivdeo.write(image)
-        self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1))) 
-        if self.feature['mpa1'] and self.monitorAreaCAM1.isChecked():
-          image, self.numWarning = detectObject(image, self.points_CAM1, flag_Warning=1, numWarning=self.numWarning)
-        self.CAM1_draw.setPixmap(QPixmap.fromImage(self.image_to_QImage(self.drawArea(image, self.points_CAM1, self.CAM1_draw), self.CAM1_draw)))
-       
 
-    def start_view(self):
-            self.stopCAM1.setEnabled(True)
-            self.startCAM1.setEnabled(False)
-            self.cap = cv2.VideoCapture(IP_CAM_ADDRESS['CAM1'])
-            self.flag_CAM1 = self.cap.isOpened()
-            if self.cap.isOpened():
-                now = datetime.now()
-                self.savePath1 = self.createDir('IP_CAM_1')
-                self.startTime1 = str(now.day)+' - '+str(now.hour)+'h'+str(now.minute)+ ' - '
-                fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                self.outVivdeo = cv2.VideoWriter(self.savePath1+'output.avi', fourcc, 30, (int(self.cap.get(3)), int(self.cap.get(4))))
-                self.timer.start(0)
-            else:
-                self.startCAM1.setEnabled(True)
-                self.stopCAM1.setEnabled(False)
-                image = cv2.imread('no-connection.jpg')
-                self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1)))
-
-    def stop_view(self):
+    def start_view1(self):
+      self.stopCAM1.setEnabled(True)
+      self.startCAM1.setEnabled(False)
+      self.vs1 = VideoStream(src=IP_CAM_ADDRESS['CAM1'])
+      self.flag_CAM1 = self.vs1.flag
+      if self.vs1.flag:
+        self.vs1.start()
+        now = datetime.now()
+        self.savePath1 = self.createDir('IP_CAM_1')
+        self.startTime1 = str(now.day)+' - '+str(now.hour)+'h'+str(now.minute)+ ' - '
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        self.outVivdeo = cv2.VideoWriter(self.savePath1+'output.avi', fourcc, 30, (int(self.vs1.stream.get(3)), int(self.vs1.stream.get(4))))
+        self.timer.start(20)
+      else:
         self.startCAM1.setEnabled(True)
         self.stopCAM1.setEnabled(False)
-        self.timer.stop()
-        self.cap.release()
-        self.outVivdeo.release()
-        print("ok")
-        image = cv2.imread('stopVideo.png')
+        image = cv2.imread('no-connection.jpg')
         self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1)))
-        print('ok2')
+    def viewCam1(self):
+      image = self.vs1.read()
+      self.outVivdeo.write(image)
+      self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1)))
+      if self.feature['mpa1'] and self.monitorAreaCAM1.isChecked():
+        image, self.numWarning = detectObject(image, self.points_CAM1, flag_Warning=1, numWarning=self.numWarning)
+      self.CAM1_draw.setPixmap(QPixmap.fromImage(self.image_to_QImage(self.drawArea(image, self.points_CAM1, self.CAM1_draw), self.CAM1_draw)))
+    def stop_view1(self):
+      self.startCAM1.setEnabled(True)
+      self.stopCAM1.setEnabled(False)
+      self.timer.stop()
+      self.vs1.stop()
+      image = cv2.imread('stopVideo.png')
+      self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1)))
+      now = datetime.now()
+      fileName = self.startTime1+str(now.hour)+'h'+str(now.minute)+'.avi'
+      os.rename(self.savePath1+'output.avi', self.savePath1+fileName)
+
+    def start_view2(self):
+      self.stopCAM2.setEnabled(True)
+      self.startCAM2.setEnabled(False)
+      self.vs2 = VideoStream(src=IP_CAM_ADDRESS['CAM2'])
+      print('ok')
+      if self.vs2.flag:
+        self.vs2.start()
         now = datetime.now()
-        fileName = self.startTime1+str(now.hour)+'h'+str(now.minute)+'.avi'
-        os.rename(self.savePath1+'output.avi', self.savePath1+fileName)
+        self.savePath2 = self.createDir('IP_CAM_2')
+        self.startTime2 = str(now.day)+' - '+str(now.hour)+'h'+str(now.minute)+ ' - '
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        self.outVivdeo2 = cv2.VideoWriter(self.savePath2+'output2.avi', fourcc, 30, (int(self.vs2.stream.get(3)), int(self.vs2.stream.get(4))))
+        self.timer2.start(20)
+      else:
+        self.startCAM2.setEnabled(True)
+        self.stopCAM2.setEnabled(False)
+        image = cv2.imread('no-connection.jpg')
+        self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))
+        
+    def viewCam2(self):
+      image = self.vs2.read()
+      self.outVivdeo2.write(image)
+      self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))
+    
+    def stop_view2(self):
+      self.startCAM2.setEnabled(True)
+      self.stopCAM2.setEnabled(False)
+      self.timer2.stop()
+      self.vs2.stop()
+      image = cv2.imread('stopVideo.png')
+      self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))
+      now = datetime.now()
+      fileName = self.startTime2+str(now.hour)+'h'+str(now.minute)+'.avi'
+      os.rename(self.savePath2+'output2.avi', self.savePath2+fileName)
+
+
+
+    # def viewCam(self):
+    #     # while True:
+    #     ret, image = self.cap.read()
+    #     self.outVivdeo.write(image)
+    #     self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1))) 
+    #     if self.feature['mpa1'] and self.monitorAreaCAM1.isChecked():
+    #       image, self.numWarning = detectObject(image, self.points_CAM1, flag_Warning=1, numWarning=self.numWarning)
+    #     self.CAM1_draw.setPixmap(QPixmap.fromImage(self.image_to_QImage(self.drawArea(image, self.points_CAM1, self.CAM1_draw), self.CAM1_draw)))
+
+    # def start_view(self):
+    #         self.stopCAM1.setEnabled(True)
+    #         self.startCAM1.setEnabled(False)
+    #         self.cap = cv2.VideoCapture(IP_CAM_ADDRESS['CAM1'])
+    #         self.flag_CAM1 = self.cap.isOpened()
+    #         if self.cap.isOpened():
+    #             now = datetime.now()
+    #             self.savePath1 = self.createDir('IP_CAM_1')
+    #             self.startTime1 = str(now.day)+' - '+str(now.hour)+'h'+str(now.minute)+ ' - '
+    #             fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #             self.outVivdeo = cv2.VideoWriter(self.savePath1+'output.avi', fourcc, 30, (int(self.cap.get(3)), int(self.cap.get(4))))
+    #             self.timer.start(0)
+    #         else:
+    #             self.startCAM1.setEnabled(True)
+    #             self.stopCAM1.setEnabled(False)
+    #             image = cv2.imread('no-connection.jpg')
+    #             self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1)))
+
+    # def stop_view(self):
+    #     self.startCAM1.setEnabled(True)
+    #     self.stopCAM1.setEnabled(False)
+    #     self.timer.stop()
+    #     self.cap.release()
+    #     self.outVivdeo.release()
+    #     print("ok")
+    #     image = cv2.imread('stopVideo.png')
+    #     self.CAM1.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM1)))
+    #     print('ok2')
+    #     now = datetime.now()
+    #     fileName = self.startTime1+str(now.hour)+'h'+str(now.minute)+'.avi'
+    #     os.rename(self.savePath1+'output.avi', self.savePath1+fileName)
             
 
-    def viewCam2(self):
-        ret, image = self.cap2.read()
-        self.outVivdeo2.write(image)
-        self.CAM2_draw.setPixmap(QPixmap.fromImage(self.image_to_QImage(self.drawArea(image, self.points_CAM2, self.CAM2_draw), self.CAM2_draw)))
-        self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))        
+    # def viewCam2(self):
+    #     ret, image = self.cap2.read()
+    #     self.outVivdeo2.write(image)
+    #     self.CAM2_draw.setPixmap(QPixmap.fromImage(self.image_to_QImage(self.drawArea(image, self.points_CAM2, self.CAM2_draw), self.CAM2_draw)))
+    #     self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))        
         
-    def start_view2(self):
-        if not self.timer2.isActive():
-            self.stopCAM2.setEnabled(True)
-            self.startCAM2.setEnabled(False)
-            self.cap2 = cv2.VideoCapture(IP_CAM_ADDRESS['CAM2'])
-            self.flag_CAM2 = self.cap2.isOpened()
-            if self.cap2.isOpened():
-                now = datetime.now()
-                self.savePath2 = self.createDir('IP_CAM_2')
-                self.startTime2 = str(now.day)+' - '+str(now.hour)+'h'+str(now.minute)+ ' - '
-                # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                self.outVivdeo2 = cv2.VideoWriter(self.savePath2+'output2.avi', fourcc, 30, (int(self.cap2.get(3)), int(self.cap2.get(4))))
-                self.timer2.start(0)
-            else:
-                self.startCAM2.setEnabled(True)
-                self.stopCAM2.setEnabled(False)
-                image = cv2.imread('no-connection.jpg')
-                self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))           
+    # def start_view2(self):
+    #     if not self.timer2.isActive():
+    #         self.stopCAM2.setEnabled(True)
+    #         self.startCAM2.setEnabled(False)
+    #         self.cap2 = cv2.VideoCapture(IP_CAM_ADDRESS['CAM2'])
+    #         self.flag_CAM2 = self.cap2.isOpened()
+    #         if self.cap2.isOpened():
+    #             now = datetime.now()
+    #             self.savePath2 = self.createDir('IP_CAM_2')
+    #             self.startTime2 = str(now.day)+' - '+str(now.hour)+'h'+str(now.minute)+ ' - '
+    #             # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    #             fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #             self.outVivdeo2 = cv2.VideoWriter(self.savePath2+'output2.avi', fourcc, 30, (int(self.cap2.get(3)), int(self.cap2.get(4))))
+    #             self.timer2.start(0)
+    #         else:
+    #             self.startCAM2.setEnabled(True)
+    #             self.stopCAM2.setEnabled(False)
+    #             image = cv2.imread('no-connection.jpg')
+    #             self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))           
 
-    def stop_view2(self):
-        self.startCAM2.setEnabled(True)
-        self.stopCAM2.setEnabled(False)    
-        self.timer2.stop()
-        self.outVivdeo2.release()
-        image = cv2.imread('stopVideo.png')
-        self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))
-        self.cap2.release()
-        now = datetime.now()
-        fileName = self.startTime2+str(now.hour)+'h'+str(now.minute)+'.avi'
-        os.rename(self.savePath2+'output2.avi', self.savePath2+fileName) 
+    # def stop_view2(self):
+    #     self.startCAM2.setEnabled(True)
+    #     self.stopCAM2.setEnabled(False)    
+    #     self.timer2.stop()
+    #     self.outVivdeo2.release()
+    #     image = cv2.imread('stopVideo.png')
+    #     self.CAM2.setPixmap(QPixmap.fromImage(self.image_to_QImage(image, self.CAM2)))
+    #     self.cap2.release()
+    #     now = datetime.now()
+    #     fileName = self.startTime2+str(now.hour)+'h'+str(now.minute)+'.avi'
+    #     os.rename(self.savePath2+'output2.avi', self.savePath2+fileName) 
 
     def viewCam3(self):
         ret, image = self.cap3.read()

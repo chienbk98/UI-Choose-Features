@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import datetime
 from lib_warning import *
+from playsound import playsound
+from threading import Thread
 
 bkgM = cv2.createBackgroundSubtractorMOG2(500, 51, 1)
 kernelOp = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
@@ -45,6 +47,9 @@ def detectObject(frame, points:list, flag_Warning, numWarning):
   """
   bkg_list = []
 
+  Canhbao = WarningMessage()
+
+
   frame  = cv2.resize(frame, (1280, 720))
   point1 = []
   for point in points:
@@ -54,29 +59,41 @@ def detectObject(frame, points:list, flag_Warning, numWarning):
   bkg_list = backgroundSubtraction(frame, bkg_list)
 
   for va in bkg_list:
-    x_center, y_center = int(va[0] + va[2]/2), int(va[1] + va[3]/2)
+    x_center, y_center = int(va[0] + va[2]/2), int(va[1] + va[3])
     cv2.circle(frame, center=(x_center, y_center), radius=0, color=(0, 255, 0), thickness= 7)
     if len(point1) > 2:
       dist = cv2.pointPolygonTest(np.array([point1]), (x_center, y_center), False)
       if dist > 0 and numWarning == 0:
-        if flag_Warning == 0:
-          sendemail(message)
-          pass
-        elif flag_Warning == 1:
-          sendSMS()
-          pass
-        elif flag_Warning == 2:
-          makeCall()
-          pass
-        elif flag_Warning == 3:
-          soundWarning()
-          pass
-        else:
+        # Canhbao.start()
+        # if flag_Warning == 0:
+        #   sendemail(message)
+        #   pass
+        # elif flag_Warning == 1:
+        #   sendSMS()
+        #   pass
+        # elif flag_Warning == 2:
+        #   makeCall()
+        #   pass
+        # elif flag_Warning == 3:
+        #   soundWarning()
+        #   pass
+        # else:
           print('<<<<<<< Warning >>>>>>>', datetime.datetime.now())
-        numWarning = numWarning + 1
+        # numWarning = numWarning + 1
     cv2.rectangle(frame, (va[0], va[1]), (va[0] + va[2], va[1]+va[3]), (255, 0, 0), 2, 1)
   remove_list(bkg_list)
 
   return frame, numWarning
 
 
+class WarningMessage:
+  def __init__(self):
+    pass
+
+  def start(self):
+    Thread(target=self.play(), args=()).start
+    return self
+    pass
+
+  def play(self):
+    playsound('warning.mp3')
